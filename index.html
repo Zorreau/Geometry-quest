@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark h-full w-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Géométrie Quest - Path to PGM Grandmaster</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              bg: '#060911',
+              panel: '#0d1527',
+              card: '#162238',
+              border: '#1e2d4a',
+              accent: '#00f0ff',
+              green: '#00ff66',
+              gold: '#ffd700',
+              pink: '#ff0055',
+              purple: '#b026ff'
+            }
+          },
+          fontFamily: {
+            sans: ['Rajdhani', 'Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;700&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="h-full w-full flex flex-col bg-cyber-bg text-slate-100 overflow-hidden select-none">
+  
+  <!-- HUD KILLFEED NOTIFICATIONS CONTAINER -->
+  <div id="killfeed" class="fixed top-20 right-4 z-[110] flex flex-col space-y-2 max-w-xs sm:max-w-sm pointer-events-none"></div>
+  
+  <!-- TOP HUD HEADER BANNER -->
+  <header id="hud-header" class="h-16 bg-cyber-panel/95 border-b border-cyber-border px-4 flex items-center justify-between shrink-0 z-30 backdrop-blur-md">
+    <div class="flex items-center space-x-3">
+      <button id="sidebar-toggle-btn" onclick="game.toggleSidebar()" class="lg:hidden p-2.5 bg-cyber-card text-cyber-accent rounded-xl border border-cyber-border touch-btn flex items-center justify-center" title="Menu des Mondes">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
+      
+      <div class="relative cursor-pointer group flex items-center space-x-2.5" onclick="game.openProfileModal()" title="Ouvrir le Profil">
+        <div id="avatar-container" class="w-11 h-11 rounded-xl bg-gradient-to-br from-cyber-accent to-cyber-purple p-0.5 neon-glow-cyan">
+          <div id="avatar-display" class="w-full h-full bg-cyber-bg rounded-[9px] flex items-center justify-center text-xl transition-all">
+            🎮
+          </div>
+        </div>
+        <span id="rank-badge" class="text-[10px] bg-cyber-pink text-white font-black px-2 py-0.5 rounded uppercase tracking-wider font-mono">
+          LVL 1
+        </span>
+      </div>
+      
+      <div class="cursor-pointer" onclick="game.openProfileModal()">
+        <div class="flex items-center space-x-2">
+          <span id="player-name" class="font-extrabold text-base sm:text-lg text-white tracking-wide">Gamer_PGM</span>
+          <span id="rank-title" class="text-[10px] sm:text-xs px-2 py-0.5 rounded bg-slate-900 text-cyber-accent border border-cyber-accent/40 font-mono font-bold uppercase">
+            NOOB
+          </span>
+        </div>
+        <div class="w-28 sm:w-44 bg-slate-900 h-2.5 rounded-full overflow-hidden mt-1 border border-slate-800 flex">
+          <div id="xp-bar" class="xp-bar-base xp-theme-cyber-cyan" style="width: 20%"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Center HUD Stats -->
+    <div class="hidden md:flex items-center space-x-4">
+      <div class="flex items-center space-x-2 bg-slate-900/90 px-3.5 py-1.5 rounded-xl border border-amber-500/30 cursor-pointer" onclick="game.openGuideModal()" title="Explication du Multiplicateur de Combo">
+        <i data-lucide="flame" class="w-5 h-5 text-amber-500 animate-pulse"></i>
+        <div class="flex flex-col">
+          <span class="text-[9px] text-slate-400 uppercase font-mono leading-none">STREAK MULTI</span>
+          <span id="streak-count" class="font-bold text-amber-400 font-mono text-sm leading-none mt-0.5">x1 MULTI</span>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2 bg-slate-900/90 px-3.5 py-1.5 rounded-xl border border-cyber-gold/30 cursor-pointer" onclick="game.openShop()" title="Ouvrir l'Armurerie">
+        <span class="text-xl">🪙</span>
+        <div class="flex flex-col">
+          <span class="text-[9px] text-slate-400 uppercase font-mono leading-none">CRYPTO-GEOM</span>
+          <span id="coin-count" class="font-bold text-cyber-gold font-mono text-sm leading-none mt-0.5">150 $</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Quick Action Controls -->
+    <div class="flex items-center space-x-2">
+      <button id="tour-btn" onclick="game.startGuidedTour()" class="p-2.5 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white rounded-xl border border-cyber-accent/60 transition touch-btn flex items-center space-x-1.5 font-extrabold text-xs shadow-lg neon-glow-cyan">
+        <i data-lucide="play-circle" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">DÉMO TUTO PAS-À-PAS</span>
+      </button>
+      <button onclick="game.openGuideModal()" class="p-2.5 bg-slate-900 active:bg-slate-800 text-cyber-accent rounded-xl border border-cyber-accent/40 transition touch-btn flex items-center justify-center space-x-1" title="Guide Tactique">
+        <i data-lucide="help-circle" class="w-5 h-5"></i>
+        <span class="hidden sm:inline font-bold text-xs">GUIDE</span>
+      </button>
+      <button id="audio-toggle-btn" onclick="game.toggleAudio()" class="p-2.5 bg-slate-900 active:bg-slate-800 text-slate-300 rounded-xl border border-cyber-border transition touch-btn flex items-center justify-center">
+        <i data-lucide="volume-2" id="audio-icon" class="w-5 h-5 text-cyber-accent"></i>
+      </button>
+      <button id="shop-btn" onclick="game.openShop()" class="flex items-center space-x-2 bg-gradient-to-r from-cyber-purple to-pink-600 active:opacity-90 text-white font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm neon-glow-pink touch-btn">
+        <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">ARMURERIE</span>
+      </button>
+    </div>
+  </header>
+  
+  <div class="flex-1 flex overflow-hidden relative">
+    
+    <!-- LEFT SIDEBAR: SKILL TREE WORLDS -->
+    <aside id="sidebar" class="absolute lg:relative inset-y-0 left-0 w-80 bg-cyber-panel border-r border-cyber-border flex flex-col shrink-0 z-40 transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-2xl lg:shadow-none">
+      <div class="p-3.5 border-b border-cyber-border bg-slate-950/60 flex justify-between items-center">
+        <div>
+          <div class="text-[11px] text-slate-400 font-mono mb-0.5 uppercase tracking-wider flex justify-between">
+            <span>ARBRE DES 8 RANGS PGM</span>
+          </div>
+          <span id="domain-progress-lbl" class="text-cyber-accent font-extrabold text-xs">0/48 MISSIONS RÉUSSIES</span>
+        </div>
+        <button onclick="game.toggleSidebar()" class="lg:hidden p-2 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+      
+      <!-- Worlds Selector Tabs (Mondes 1 à 6) -->
+      <div class="p-2 grid grid-cols-2 gap-2 border-b border-cyber-border bg-slate-950/30" id="world-tabs">
+        <button onclick="game.selectWorld(1)" id="wtab-1" class="wtab active p-2.5 rounded-xl bg-cyber-card border border-cyber-accent text-cyber-accent font-bold text-xs flex items-center space-x-2 touch-btn">
+          <span class="text-lg">🗺️</span>
+          <span class="truncate">Monde 1: Radar</span>
+        </button>
+        <button onclick="game.selectWorld(2)" id="wtab-2" class="wtab p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs flex items-center space-x-2 touch-btn">
+          <span class="text-lg">📐</span>
+          <span class="truncate">Monde 2: Laser</span>
+        </button>
+        <button onclick="game.selectWorld(3)" id="wtab-3" class="wtab p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs flex items-center space-x-2 touch-btn">
+          <span class="text-lg">📏</span>
+          <span class="truncate">Monde 3: Hitbox</span>
+        </button>
+        <button onclick="game.selectWorld(4)" id="wtab-4" class="wtab p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs flex items-center space-x-2 touch-btn">
+          <span class="text-lg">🪞</span>
+          <span class="truncate">Monde 4: Mirror</span>
+        </button>
+        <button onclick="game.selectWorld(5)" id="wtab-5" class="wtab p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs flex items-center space-x-2 touch-btn">
+          <span class="text-lg">📦</span>
+          <span class="truncate">Monde 5: Craft 3D</span>
+        </button>
+        <button onclick="game.selectWorld(6)" id="wtab-6" class="wtab p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs flex items-center space-x-2 touch-btn">
+          <span class="text-lg">🚀</span>
+          <span class="truncate">Monde 6: Vectors</span>
+        </button>
+      </div>
+      
+      <!-- Skill Nodes List for Active World -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-2.5" id="skill-nodes-container"></div>
+      
+      <!-- Boss Qualification Trigger -->
+      <div class="p-3.5 border-t border-cyber-border bg-slate-950">
+        <button id="boss-quest-btn" onclick="game.startBossQuest()" class="w-full py-3.5 px-3 bg-slate-900 text-slate-500 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2 border border-slate-800 cursor-not-allowed opacity-60 touch-btn" disabled>
+          <i data-lucide="swords" class="w-5 h-5"></i>
+          <span id="boss-btn-text">BOSS FIGHT VERROUILLÉ</span>
+        </button>
+      </div>
+    </aside>
+    
+    <div id="sidebar-backdrop" onclick="game.toggleSidebar()" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-30 hidden lg:hidden"></div>
+    
+    <!-- RIGHT MAIN WORKSPACE -->
+    <main class="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
+      <!-- MISSION HEADER BANNER -->
+      <div class="min-h-[3.5rem] bg-cyber-panel/90 backdrop-blur border-b border-cyber-border px-3 sm:px-4 py-2 flex flex-wrap sm:flex-nowrap items-center justify-between z-10 shrink-0 gap-2">
+        <div class="flex items-center space-x-2.5 min-w-0 flex-1 pr-1">
+          <div id="quest-icon" class="p-2 bg-cyber-accent/10 border border-cyber-accent/30 rounded-xl text-cyber-accent text-lg sm:text-xl shrink-0">
+            🗺️
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center space-x-2 flex-wrap sm:flex-nowrap">
+              <span id="quest-tag" class="text-[9px] bg-cyber-accent/20 text-cyber-accent font-black px-2 py-0.5 rounded font-mono shrink-0 uppercase">
+                NOOB (RANG 1)
+              </span>
+              <h2 id="quest-title" class="font-extrabold text-slate-100 text-xs sm:text-sm md:text-base truncate">
+                Largage Ravitaillement
+              </h2>
+            </div>
+            <p id="quest-desc" class="text-[10px] sm:text-[11px] break-words text-slate-300 max-w-full">
+              Saisis la case exacte du largage sur le radar tactique.
+            </p>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0 ml-auto">
+          <button id="quest-demo-btn" onclick="game.startQuestDemo()" class="p-2 sm:p-2.5 bg-gradient-to-r from-amber-600 to-amber-500 active:opacity-90 text-slate-950 font-black rounded-xl border border-amber-400 text-xs flex items-center space-x-1 sm:space-x-1.5 transition touch-btn neon-glow-gold whitespace-nowrap" title="Explication du niveau actuel">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+            <span class="hidden md:inline">🎬 DÉMO DU MONDE</span>
+            <span class="inline md:hidden">🎬 DÉMO</span>
+          </button>
+          <button onclick="game.getHint()" class="p-2 sm:p-2.5 bg-slate-900 active:bg-slate-800 text-amber-400 rounded-xl border border-slate-800 text-xs flex items-center space-x-1 sm:space-x-1.5 transition touch-btn whitespace-nowrap">
+            <i data-lucide="lightbulb" class="w-4 h-4"></i>
+            <span class="hidden sm:inline font-bold">INDICE</span>
+          </button>
+          <button onclick="game.resetCanvas()" class="p-2 sm:p-2.5 bg-slate-900 active:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 text-xs flex items-center space-x-1 sm:space-x-1.5 transition touch-btn whitespace-nowrap">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            <span class="hidden sm:inline font-bold">RAZ</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Canvas Interactive Zone -->
+      <div class="flex-1 relative bg-[#060911] flex items-center justify-center p-2 min-h-[300px]" id="canvas-container">
+        <canvas id="game-canvas" class="border border-cyber-border rounded-2xl shadow-2xl bg-[#080d19] touch-none"></canvas>
+        
+        <!-- Boss Fight Overlay Header -->
+        <div id="boss-hud-overlay" class="absolute top-4 left-1/2 -translate-x-1/2 bg-red-950/90 border border-red-500 backdrop-blur-md px-6 py-2.5 rounded-2xl shadow-2xl flex items-center space-x-6 z-30 hidden animate-pulse-fast neon-glow-red">
+          <div class="flex items-center space-x-3">
+            <span class="text-3xl animate-bounce">👹</span>
+            <div>
+              <div id="boss-name-display" class="font-black text-xs text-red-400 uppercase tracking-widest leading-none">BOSS : GRANDMASTER APEX</div>
+              <div class="w-40 sm:w-52 bg-slate-900 h-3 rounded-full overflow-hidden border border-red-700 mt-1.5 p-0.5">
+                <div id="boss-hp-bar" class="bg-gradient-to-r from-red-600 to-amber-500 h-full rounded-full transition-all duration-300" style="width: 100%"></div>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-col items-center border-l border-red-800/80 pl-4">
+            <span class="text-[9px] text-red-300 font-mono leading-none uppercase">CHRONO SPEEDRUN</span>
+            <span id="boss-timer" class="font-black text-amber-400 font-mono text-lg leading-none mt-1">30s</span>
+          </div>
+        </div>
+        
+        <!-- Dynamic Touch QCM Choices Panel (Repliable) -->
+        <div id="quick-choices-panel" class="absolute bottom-20 left-1/2 -translate-x-1/2 bg-cyber-panel/95 border border-cyber-accent/50 backdrop-blur-md p-2.5 rounded-2xl shadow-2xl flex flex-col items-center justify-center gap-2 z-20 transition max-w-[95vw] hidden">
+          <div class="w-full flex justify-between items-center px-1 pb-1 border-b border-slate-800 gap-4">
+            <span class="text-[10px] font-mono font-bold text-cyber-accent uppercase tracking-wider">CHOIX RAPIDES QCM</span>
+            <button onclick="game.toggleQuickChoicesCollapse()" class="text-slate-400 hover:text-cyber-accent p-0.5 text-[10px] font-mono font-bold flex items-center gap-1 transition">
+              <span id="toggle-qcm-label">▼ RÉDUIRE</span>
+            </button>
+          </div>
+          <div id="quick-choices-items" class="flex flex-wrap items-center justify-center gap-2"></div>
+        </div>
+        
+        <!-- Touch Input Bar Overlay -->
+        <!-- Input HTML système masqué pour l'accessibilité mobile/iOS/Android -->
+        <input type="text" id="native-keyboard-trigger" class="sr-only opacity-0 absolute -z-50 pointer-events-none" autocomplete="off" />
+
+        <!-- Touch Input Bar Overlay -->
+        <div id="input-overlay" class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-cyber-panel/95 border border-cyber-accent/40 backdrop-blur-md px-3 py-2 rounded-2xl shadow-2xl flex items-center space-x-2 z-20 transition">
+          <span class="text-xs font-bold text-slate-300 hidden sm:inline">VERROUILLAGE :</span>
+          
+          <div id="answer-display" onclick="game.toggleVirtualKeypad()" class="bg-slate-950 border border-slate-700 text-cyber-accent font-extrabold font-mono px-3.5 py-2 rounded-xl text-base w-32 sm:w-40 text-center tracking-wider cursor-pointer border-cyber-accent/50 min-h-[44px] flex items-center justify-center">
+            <span id="answer-text" class="placeholder-slate-600">APPUYER...</span>
+          </div>
+          
+          <button onclick="game.toggleVirtualKeypad()" class="p-2.5 bg-slate-900 border border-slate-700 text-cyber-accent rounded-xl touch-btn flex items-center justify-center" title="Clavier Tactile Holo">
+            <i data-lucide="calculator" class="w-5 h-5"></i>
+          </button>
+
+          <button onclick="game.activateNativeKeyboard()" class="p-2.5 bg-slate-900 border border-slate-700 text-cyber-gold rounded-xl touch-btn flex items-center justify-center" title="Clavier Système Natif">
+            <i data-lucide="keyboard" class="w-5 h-5"></i>
+          </button>
+          
+          <button onclick="game.toggleVirtualKeypad()" class="p-2.5 bg-slate-900 border border-slate-700 text-cyber-accent rounded-xl touch-btn flex items-center justify-center" title="Clavier Tactile">
+            <i data-lucide="calculator" class="w-5 h-5"></i>
+          </button>
+          
+          <button onclick="game.submitAnswer()" class="bg-gradient-to-r from-cyber-accent to-blue-600 active:from-cyan-400 active:to-blue-500 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center space-x-1.5 transition neon-glow-cyan touch-btn">
+            <span>FIRING / SHOOT</span>
+            <i data-lucide="crosshair" class="w-4 h-4 ml-0.5"></i>
+          </button>
+        </div>
+        
+        <!-- HOLO-TOUCH NUMPAD KEYPAD MODAL -->
+        <div id="virtual-keypad" class="absolute bottom-20 left-1/2 -translate-x-1/2 bg-cyber-panel/98 border border-cyber-accent/60 backdrop-blur-lg p-3 rounded-2xl shadow-2xl z-50 hidden flex-col space-y-2 w-80 sm:w-96 border-2 neon-glow-cyan select-none">
+          <div id="keypad-header" class="flex justify-between items-center border-b border-slate-800 pb-1.5 cursor-grab active:cursor-grabbing hover:bg-slate-900/50 p-1 rounded-t-xl touch-none">
+            <span class="text-xs font-mono font-bold text-cyber-accent uppercase flex items-center gap-1.5 pointer-events-none">
+              <i data-lucide="move" class="w-4 h-4 text-cyber-accent animate-pulse"></i>
+              <i data-lucide="keyboard" class="w-4 h-4"></i> KEYPAD TACTILE PGM
+            </span>
+            <button onclick="game.toggleVirtualKeypad()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-6 gap-1 border-t border-slate-800 pt-1.5" id="keypad-grid">
+            <!-- Contenu peuplé dynamiquement par updateKeypadGrid() avec touches ², ³, ° -->
+          </div>
+
+          <div class="pt-1">
+            <button onclick="game.submitAnswer()" class="w-full py-2.5 bg-cyber-green/20 hover:bg-cyber-green/30 border border-cyber-green text-cyber-green font-bold text-xs rounded-xl touch-btn flex items-center justify-center gap-1.5 neon-glow-green">
+              <i data-lucide="crosshair" class="w-4 h-4"></i> FIRING / SHOOT
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- FOOTER TACTICAL TOOLS TOOLBAR -->
+      <footer id="hud-footer" class="h-16 bg-cyber-panel border-t border-cyber-border px-4 flex items-center justify-between shrink-0 z-20 relative">
+        <button onclick="game.toggleTacticalFooter()" class="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyber-panel border border-cyber-border text-slate-400 hover:text-cyber-accent text-[9px] font-mono px-3 py-0.5 rounded-t-lg shadow-md touch-btn">
+          <span id="toggle-footer-lbl">▼ MASQUER</span>
+        </button>
+        
+        <div class="flex items-center space-x-2 overflow-x-auto py-1 max-w-[80vw]">
+          <span class="text-[10px] font-mono text-slate-400 uppercase hidden md:inline mr-1">OUTILS TACTIQUES :</span>
+          
+          <button onclick="game.setActiveTool('pointer')" id="tool-pointer" class="tool-btn active p-2.5 bg-cyber-card border border-cyber-accent text-cyber-accent rounded-xl text-xs font-bold flex items-center space-x-1.5 shrink-0 touch-btn">
+            <i data-lucide="mouse-pointer" class="w-4 h-4"></i>
+            <span>SÉLECTION</span>
+          </button>
+          <button onclick="game.setActiveTool('ruler')" id="tool-ruler" class="tool-btn p-2.5 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl text-xs font-bold flex items-center space-x-1.5 shrink-0 touch-btn">
+            <i data-lucide="ruler" class="w-4 h-4"></i>
+            <span id="label-tool-ruler">RÈGLE NÉON</span>
+          </button>
+          <button onclick="game.setActiveTool('square')" id="tool-square" class="tool-btn p-2.5 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl text-xs font-bold flex items-center space-x-1.5 shrink-0 touch-btn">
+            <i data-lucide="triangle" class="w-4 h-4"></i>
+            <span id="label-tool-square">ÉQUERRE LASER</span>
+          </button>
+          <button onclick="game.setActiveTool('protractor')" id="tool-protractor" class="tool-btn p-2.5 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl text-xs font-bold flex items-center space-x-1.5 shrink-0 touch-btn">
+            <i data-lucide="compass" class="w-4 h-4"></i>
+            <span id="label-tool-protractor">RAPPORTEUR HOLO</span>
+          </button>
+        </div>
+        
+        <div class="flex items-center space-x-2 shrink-0">
+          <button onclick="game.nextQuest()" class="px-4 py-2.5 bg-slate-900 active:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-bold rounded-xl flex items-center space-x-1 transition touch-btn">
+            <span>SUIVANT</span>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </footer>
+    </main>
+  </div>
+  
+  <!-- ONBOARDING CHARACTER CREATION MODAL -->
+  <div id="onboarding-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[120] flex items-center justify-center hidden p-4">
+    <div class="bg-cyber-panel border-2 border-cyber-accent w-full max-w-lg rounded-2xl shadow-2xl p-6 relative flex flex-col space-y-5 neon-glow-cyan animate-pulse-fast">
+      <div class="text-center border-b border-slate-800 pb-3">
+        <span class="text-3xl">🚀</span>
+        <h3 class="text-xl font-black text-white tracking-wide uppercase mt-1">
+          CRÉE TON PERSONNAGE PGM !
+        </h3>
+        <p class="text-xs text-cyber-accent font-mono mt-0.5">Configuration initiale requise pour intégrer Géométrie Quest</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-mono font-bold text-slate-300 uppercase mb-1.5">1. Choisis ton Pseudo Gamer :</label>
+          <input type="text" id="ob-pseudo-input" value="Apex_Geom" placeholder="Pseudo PGM..." class="w-full bg-slate-950 border border-slate-700 text-cyber-accent font-extrabold px-4 py-3 rounded-xl text-base focus:outline-none focus:border-cyber-accent border-2" />
+        </div>
+        
+        <div>
+          <label class="block text-xs font-mono font-bold text-slate-300 uppercase mb-1.5">2. Choisis ton Avatar :</label>
+          <div class="grid grid-cols-4 gap-2.5">
+            <button onclick="game.selectOnboardingAvatar('avatar_gamer', this)" class="ob-avatar-btn active p-3 bg-gradient-to-br from-cyan-500 to-blue-700 text-cyan-200 border-2 border-cyber-accent rounded-xl flex items-center justify-center touch-btn shadow-[0_0_12px_rgba(0,240,255,0.6)]">
+              <i data-lucide="gamepad-2" class="w-6 h-6"></i>
+            </button>
+            <button onclick="game.selectOnboardingAvatar('avatar_steve_block', this)" class="ob-avatar-btn p-3 bg-gradient-to-br from-emerald-700 to-amber-800 text-green-200 border-2 border-slate-800 rounded-xl flex items-center justify-center touch-btn">
+              <i data-lucide="box" class="w-6 h-6"></i>
+            </button>
+            <button onclick="game.selectOnboardingAvatar('avatar_motorfest_rider', this)" class="ob-avatar-btn p-3 bg-gradient-to-br from-slate-900 to-orange-600 text-orange-200 border-2 border-slate-800 rounded-xl flex items-center justify-center touch-btn">
+              <i data-lucide="gauge" class="w-6 h-6"></i>
+            </button>
+            <button onclick="game.selectOnboardingAvatar('avatar_cyber_v', this)" class="ob-avatar-btn p-3 bg-gradient-to-br from-yellow-400 to-red-600 text-black border-2 border-slate-800 rounded-xl flex items-center justify-center touch-btn">
+              <i data-lucide="zap" class="w-6 h-6"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-xs font-mono font-bold text-slate-300 uppercase mb-1.5">3. Skin Gratuit de Départ :</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="game.selectOnboardingSkin('skin_ruler_assassin_hidden', this)" class="ob-skin-btn active p-2.5 bg-cyber-card border-2 border-cyber-accent rounded-xl text-xs font-bold flex flex-col items-center space-y-1 touch-btn text-cyber-accent">
+              <i data-lucide="sword" class="w-5 h-5"></i>
+              <span class="truncate">Lame Secrète</span>
+            </button>
+            <button onclick="game.selectOnboardingSkin('skin_square_minecraft_redstone', this)" class="ob-skin-btn p-2.5 bg-slate-900 border-2 border-slate-800 rounded-xl text-xs font-bold flex flex-col items-center space-y-1 touch-btn text-slate-400">
+              <i data-lucide="box" class="w-5 h-5"></i>
+              <span class="truncate">Équerre Redstone</span>
+            </button>
+            <button onclick="game.selectOnboardingSkin('skin_protractor_gta_speedo', this)" class="ob-skin-btn p-2.5 bg-slate-900 border-2 border-slate-800 rounded-xl text-xs font-bold flex flex-col items-center space-y-1 touch-btn text-slate-400">
+              <i data-lucide="gauge" class="w-5 h-5"></i>
+              <span class="truncate">Compteur Vice</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <button onclick="game.confirmOnboardingCharacter()" class="w-full py-4 bg-gradient-to-r from-cyber-accent to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-sm uppercase rounded-xl transition neon-glow-cyan touch-btn flex items-center justify-center space-x-2">
+        <span>VALIDER & ENTAMER LA QUÊTE</span>
+        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+  
+  <!-- GUIDED INTERACTIVE TUTORIAL OVERLAY -->
+  <div id="tour-modal" class="fixed inset-0 pointer-events-none z-[100] hidden">
+    <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"></div>
+    
+    <div id="tour-modal-card" class="pointer-events-auto fixed bg-cyber-panel border-2 border-cyber-accent w-[92vw] max-w-lg rounded-2xl shadow-2xl p-5 flex flex-col space-y-3 neon-glow-cyan">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl" id="tour-step-icon">🎮</span>
+          <h3 id="tour-step-title" class="text-base font-black text-white tracking-wide uppercase">
+            Étape 1: Bienvenue PGM !
+          </h3>
+        </div>
+        <span id="tour-step-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 bg-cyber-accent/20 text-cyber-accent rounded-lg border border-cyber-accent/40">
+          Étape 1 / 6
+        </span>
+      </div>
+      
+      <div id="tour-step-content" class="text-xs text-slate-200 font-mono space-y-2 leading-relaxed"></div>
+      
+      <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+        <button onclick="game.prevTourStep()" id="tour-prev-btn" class="px-3.5 py-2 bg-slate-900 active:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl touch-btn flex items-center gap-1">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> PRÉCÉDENT
+        </button>
+        
+        <button onclick="game.closeGuidedTour()" class="px-2.5 py-1.5 text-slate-400 hover:text-red-400 text-xs font-bold">
+          FERMER
+        </button>
+        
+        <button onclick="game.nextTourStep()" id="tour-next-btn" class="px-4 py-2 bg-gradient-to-r from-cyber-accent to-blue-600 text-slate-950 font-black text-xs rounded-xl touch-btn flex items-center gap-1 neon-glow-cyan">
+          <span>SUIVANT</span>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- LEVEL DEMO MODAL -->
+  <div id="quest-demo-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[110] flex items-center justify-center hidden p-4">
+    <div class="bg-cyber-panel border-2 border-amber-400 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative flex flex-col space-y-4 neon-glow-gold">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">🎬</span>
+          <h3 id="quest-demo-title" class="text-base sm:text-lg font-black text-amber-400 uppercase">
+            DÉMO TACTIQUE DU MONDE
+          </h3>
+        </div>
+        <button onclick="game.closeQuestDemo()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <div id="quest-demo-content" class="text-xs sm:text-sm text-slate-200 font-mono space-y-3 leading-relaxed"></div>
+      
+      <div class="pt-2 border-t border-slate-800 flex justify-end">
+        <button onclick="game.closeQuestDemo()" class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs rounded-xl touch-btn neon-glow-gold">
+          COMPRIS ! RETOUR AU COMBAT
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- GUIDE MODAL -->
+  <div id="guide-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[110] flex items-center justify-center hidden p-4">
+    <div class="bg-cyber-panel border border-cyber-accent/60 w-full max-w-2xl rounded-2xl shadow-2xl p-6 relative flex flex-col max-h-[85vh] border-2 neon-glow-cyan">
+      <button onclick="game.closeGuideModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+      
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="p-3 bg-cyber-accent/20 border border-cyber-accent rounded-xl text-cyber-accent text-2xl">
+          🎮
+        </div>
+        <div>
+          <h3 class="text-xl font-black text-white tracking-wide">GUIDE DE COMBAT & SYSTÈME PÉDAGOGIQUE PGM</h3>
+          <p class="text-xs text-slate-400">Master class tactique pour gravir les 8 Rangs PGM !</p>
+        </div>
+      </div>
+      
+      <div class="space-y-4 overflow-y-auto pr-2 text-xs text-slate-300 font-mono">
+        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-cyber-gold/40">
+          <h4 class="font-extrabold text-cyber-gold text-sm mb-2 flex items-center gap-1.5">
+            🏆 ÉCHELLE DES 8 RANGS PGM
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+              <b class="text-cyber-accent">Rang 1 : Noob (CE1)</b> — Repérage de cases, quadrillages simples.
+            </div>
+            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+              <b class="text-cyber-accent">Rang 2 : Novice (CE2)</b> — Déplacements fléchés, milieux & alignements.
+            </div>
+            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+              <b class="text-cyber-accent">Rang 3 : Apprenti (CM1)</b> — Radars 8x8, droites parallèles & périmètres.
+            </div>
+            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+              <b class="text-cyber-accent">Rang 4 : Confirmé (CM2)</b> — Distances, classification d'angles & aires.
+            </div>
+            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+              <b class="text-cyber-accent">Rang 5 : Expert (6ème)</b> — Repères orthogonaux (0,0), angles au rapporteur.
+            </div>
+            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+              <b class="text-cyber-accent">Rang 6 : Champion (5ème)</b> — Vecteurs, angles alternes-internes & prismes.
+            </div>
+            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+              <b class="text-cyber-accent">Rang 7 : Légendaire (5ème)</b> — Coordonnées 3D, trigonométrie & pyramides.
+            </div>
+            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+              <b class="text-cyber-accent">Rang 8 : Hacker PGM (PGM)</b> — Azimuts, rotations vectorielles & conversions.
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+          <h4 class="font-extrabold text-cyber-accent text-sm mb-1 flex items-center gap-1.5">
+            🗺️ MONDE 1: MAP & RADAR TACTIQUE
+          </h4>
+          <p>Repère les colonnes (A à E / A à H) et lignes. En niveau Expert/Champion, gère le repère orthogonal centré (0,0) et les coordonnées relatives ou 3D.</p>
+        </div>
+        
+        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+          <h4 class="font-extrabold text-cyber-green text-sm mb-1 flex items-center gap-1.5">
+            📐 MONDE 2: LASER SCOPE & FIGURES PLANES
+          </h4>
+          <p>Alignements, identification de formes, quadrilatères, triangles, cercle (rayon/diamètre), classification d'angles et trigonométrie (cosinus).</p>
+        </div>
+        
+        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+          <h4 class="font-extrabold text-cyber-pink text-sm mb-1 flex items-center gap-1.5">
+            📏 MONDE 3: HITBOX & RELATIONS GÉOMÉTRIQUES
+          </h4>
+          <p>Alignement de points, notations ([AB], (AB), [AB)), droites parallèles/perpendiculaires, angles alternes-internes et droites remarquables.</p>
+        </div>
+        
+        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+          <h4 class="font-extrabold text-cyber-purple text-sm mb-1 flex items-center gap-1.5">
+            🪞 MONDE 4: MIROIR NUMÉRIQUE & SYMÉTRIES
+          </h4>
+          <p>Symétrie axiale sur quadrillage, dénombrement d'axes de symétrie, conservation des distances/aires, médiatrice et symétrie centrale (demi-tour 180°).</p>
+        </div>
+        
+        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-amber-500/40">
+          <h4 class="font-extrabold text-amber-400 text-sm mb-1 flex items-center gap-1.5">
+            📦 MONDE 5: CRAFT 3D & GÉOMÉTRIE DE L'ESPACE
+          </h4>
+          <p>Polyèdres et solides qui roulent/glissent, dénombrement faces/sommets/arêtes, patrons 2D, perspective cavalière et calculs de volumes (cube, pavé, cylindre, pyramide, cône, sphère).</p>
+        </div>
+        
+        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-cyan-500/40">
+          <h4 class="font-extrabold text-cyan-400 text-sm mb-1 flex items-center gap-1.5">
+            🚀 MONDE 6: TRANSFORMATIONS & VECTEURS AVANCÉS
+          </h4>
+          <p>Déplacements cardinaux, translations vectorielles, rotations autour d'un centre, homothéties (agrandissement/réduction k, k², k³) et géométrie dynamique.</p>
+        </div>
+        
+        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-amber-500/40">
+          <h4 class="font-extrabold text-amber-400 text-sm mb-1 flex items-center gap-1.5">
+            👹 BOSS FIGHT SPEEDRUN (30 SECONDES)
+          </h4>
+          <p>Une fois 12 missions réussies, déclenche le Boss Fight ! Tu as 30 secondes pour enchaîner les tirs critiques et infliger 100 HP de dégâts.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ARMURERIE / SHOP MODAL -->
+  <div id="shop-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[110] flex items-center justify-center hidden p-4">
+    <div class="bg-cyber-panel border border-cyber-purple/50 w-full max-w-4xl rounded-2xl shadow-2xl p-6 relative flex flex-col max-h-[85vh]">
+      <button onclick="game.closeShop()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+      
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="p-3 bg-cyber-purple/20 border border-cyber-purple rounded-xl text-cyber-purple text-2xl">
+          🛒
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white tracking-wide">L'ARMURERIE PGM & SKINS LÉGENDAIRES</h3>
+          <p class="text-xs text-slate-400">Équipe tes outils, viseurs, canvas et avatars avec des skins pop-culture et jeux vidéo !</p>
+        </div>
+        <div class="ml-auto bg-slate-900 border border-cyber-gold/40 px-4 py-2 rounded-xl flex items-center space-x-2">
+          <span class="text-xl">🪙</span>
+          <span id="shop-coin-count" class="font-bold text-cyber-gold font-mono text-base">150 $</span>
+        </div>
+      </div>
+      
+      <!-- Shop Filter Tabs -->
+      <div class="flex items-center space-x-2 border-b border-slate-800 pb-3 mb-4 overflow-x-auto">
+        <button onclick="game.filterShop('all')" id="stab-all" class="stab active px-3.5 py-1.5 rounded-xl bg-cyber-card border border-cyber-accent text-cyber-accent font-bold text-xs touch-btn shrink-0">
+          TOUS LES SKINS
+        </button>
+        <button onclick="game.filterShop('avatar')" id="stab-avatar" class="stab px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs touch-btn shrink-0">
+          🎮 AVATARS
+        </button>
+        <button onclick="game.filterShop('xp_theme')" id="stab-xp_theme" class="stab px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs touch-btn shrink-0">
+          ⚡ SKINS D'XP
+        </button>
+        <button onclick="game.filterShop('tool')" id="stab-tool" class="stab px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs touch-btn shrink-0">
+          📐 OUTILS
+        </button>
+        <button onclick="game.filterShop('crosshair')" id="stab-crosshair" class="stab px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs touch-btn shrink-0">
+          🎯 VISEURS
+        </button>
+        <button onclick="game.filterShop('canvas')" id="stab-canvas" class="stab px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold text-xs touch-btn shrink-0">
+          🌌 FONDS CANVAS
+        </button>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 overflow-y-auto pr-2 flex-1" id="shop-items-container"></div>
+    </div>
+  </div>
+  
+  <!-- PROFILE MODAL -->
+  <div id="profile-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[110] flex items-center justify-center hidden p-4">
+    <div class="bg-cyber-panel border border-cyber-accent/50 w-full max-w-3xl rounded-2xl shadow-2xl p-6 relative flex flex-col max-h-[90vh]">
+      <button onclick="game.closeProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+      
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="p-3 bg-cyber-accent/20 border border-cyber-accent rounded-xl text-cyber-accent text-2xl">
+          👥
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white tracking-wide">GESTION DE PROFIL & PROGRESSION</h3>
+          <p class="text-xs text-slate-400">Gère tes accomplissements et sauvegarde ta progression.</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2 border-b border-slate-800 pb-3 mb-4">
+        <button class="px-4 py-2.5 rounded-xl bg-cyber-card text-cyber-accent border border-cyber-accent font-bold text-xs transition touch-btn">
+          📂 PROFILS GAMERS
+        </button>
+      </div>
+      
+      <div id="psec-profiles" class="flex-1 flex flex-col space-y-4 overflow-y-auto pr-1">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col space-y-3">
+            <h4 class="font-bold text-white text-sm">Éditer le Pseudo Actif :</h4>
+            <div class="flex items-center space-x-2">
+              <input type="text" id="edit-active-profile-name" placeholder="Nouveau pseudo..." class="flex-1 bg-slate-950 border border-slate-700 text-cyber-accent font-bold px-3.5 py-2 rounded-xl text-sm focus:outline-none focus:border-cyber-accent" />
+              <button onclick="game.editActiveProfileName(document.getElementById('edit-active-profile-name').value)" class="px-3.5 py-2 bg-cyber-accent text-slate-950 font-black rounded-xl text-xs touch-btn hover:bg-cyan-300 transition">
+                VALIDER
+              </button>
+            </div>
+            
+            <hr class="border-slate-800/80 my-1" />
+            
+            <h4 class="font-bold text-white text-sm">Créer un Autre Profil :</h4>
+            <input type="text" id="new-profile-name" placeholder="Pseudo Nouveau Joueur..." class="bg-slate-950 border border-slate-700 text-cyber-accent font-bold px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:border-cyber-accent" />
+            <button onclick="game.createNewProfile()" class="w-full py-2.5 bg-gradient-to-r from-cyber-accent to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black rounded-xl text-xs transition neon-glow-cyan touch-btn">
+              + CRÉER NOUVEAU PROFIL
+            </button>
+          </div>
+          
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
+            <h4 class="font-bold text-white text-sm">Tableau de Bord Tactique :</h4>
+            <div class="grid grid-cols-2 gap-2 my-2">
+              <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center">
+                <span class="text-[9px] text-slate-400 font-mono block">MISSIONS RÉUSSIES</span>
+                <span id="stat-quests-count" class="font-extrabold text-cyber-accent text-lg font-mono">0</span>
+              </div>
+              <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center">
+                <span class="text-[9px] text-slate-400 font-mono block">PROGRESSION TOTAL</span>
+                <span id="stat-progress-pct" class="font-extrabold text-cyber-green text-lg font-mono">0%</span>
+              </div>
+              <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center">
+                <span class="text-[9px] text-slate-400 font-mono block">RECORD STREAK</span>
+                <span id="stat-max-streak" class="font-extrabold text-amber-400 text-lg font-mono">x1</span>
+              </div>
+              <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center">
+                <span class="text-[9px] text-slate-400 font-mono block">PRÉCISION DU TIR</span>
+                <span id="stat-accuracy-pct" class="font-extrabold text-cyber-pink text-lg font-mono">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <h4 class="font-bold text-white text-sm pt-2">Profils Enregistrés :</h4>
+        <div id="profiles-list-container" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- CHARGEMENT SÉQUENTIEL DES MODULES JAVASCRIPT -->
+  <script src="js/helpers.js"></script>
+  <script src="js/soundEngine.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/worlds.js"></script>
+  <script src="js/gamification.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/renderers.js"></script>
+</body>
+</html>
